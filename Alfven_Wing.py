@@ -24,6 +24,7 @@ import matplotlib.colors as colors
 #from lobe_id import shade_in_time_series
 
 sys.path.append('/Users/bowersch/Desktop/Python_Code/MESSENGER_Lobe_Analysis/')
+
 from trying3 import check_for_mp_bs_WS,convert_to_datetime,convert_to_date_2,plot_mp_and_bs,\
     plot_MESSENGER_trange_cyl,convert_to_date_2_utc,get_mercury_distance_to_sun,\
         convert_datetime_to_string,plot_MESSENGER_trange_3ax,get_aberration_angle,\
@@ -714,7 +715,7 @@ def multi_orbit_plot(ii,r1=False,r2=False,r3=False,r4=False,ranges=False,conduct
         
         if philpott==True:
             
-            df_boundaries = pd.read_pickle('df_boundaries_philpott.pkl')
+            df_boundaries = pd.read_pickle('/Users/bowersch/Desktop/Python_Code/Alfven_Wing/df_boundaries_philpott.pkl')
             
             mp_in_1 = df_boundaries[df_boundaries.Cross_Type=='mp_in_1'].time
             mp_in_2 = df_boundaries[df_boundaries.Cross_Type=='mp_in_2'].time
@@ -1393,12 +1394,124 @@ def multi_orbit_plot(ii,r1=False,r2=False,r3=False,r4=False,ranges=False,conduct
                         ax5_con.plot(dates[gd],sigma,color='black',linewidth=1,alpha=1,label='sigma')
                         df[['dates','magx_diff','magy_diff','magz_diff','magamp_diff']] = np.transpose(np.vstack((dates[gd],x_diff,y_diff,z_diff,mag_amp_diff)))
                         
-                        dates_aw=np.load('dates_21_aw.npy')
+                        dates_aw=np.load('/Users/bowersch/Desktop/Python_Code/Alfven_Wing/dates_21_aw.npy')
                         
                         ICME_21 = {'Ma':Ma,'psw':psw,'B_SW':B_SW,'B_IMF':B_IMF,'df':df,'aw':dates_aw, 'ICME_time':[date_a,date_e]}
                         import pickle
                         with open('ICME_21.pkl', 'wb') as pickle_file:
                             pickle.dump(ICME_21, pickle_file)
+                            
+                            
+                        fig,ax_p = plt.subplots(5,sharex=True)
+                        
+                        ax_p[0].plot(dates[gd],df_cme.magx,color='darkorange')
+                        ax_p[1].plot(dates[gd],df_cme.magy,color='darkorange')
+                        ax_p[2].plot(dates[gd],df_cme.magz,color='darkorange')
+                        ax_p[3].plot(dates[gd],df_cme.magamp,color='darkorange')
+                        
+                        
+                        IMF = np.array([19,0,-60])
+                        
+                        v_par = np.array([19,-60])/np.sqrt(19**2+60**2)
+                        
+                        v_perp = np.array([-v_par[1],v_par[0]])
+                        
+                        vpar = np.array([v_par[0],0,v_par[1]])
+                        vperp_1 = np.array([v_perp[0],0,v_perp[1]])
+                        
+                        vperp_2 = np.array([0,1,0])
+                        
+                        B_par = np.array([])
+                        
+                        B_perp1 = np.array([])
+                        
+                        B_perp2 = np.array([])
+                        
+      
+                        B = np.transpose(np.vstack((df_cme.magx,df_cme.magy,df_cme.magz)))
+                        
+                        #B = np.transpose(np.vstack((x_diff,y_diff,z_diff)))
+                        
+                        B_par = np.dot(B,vpar)
+                        
+                        B_perp1 = np.dot(B,vperp_1)
+                        
+                        B_perp2 = np.dot(B,vperp_2)
+                            
+                        ax_p[4].plot(dates[gd],B_par,color='indianred',label='$B_{par}$')
+                        ax_p[4].plot(dates[gd],B_perp1,color='mediumturquoise',label = '$B_{perp1}$')
+                        ax_p[4].plot(dates[gd],B_perp2,color='mediumpurple',label = '$B_{perp2}$')
+                        
+                        ax_p[4].axhline(y=0,color='black',linestyle = '--')
+                        
+                        ax_p[4].legend()
+                        
+                        def make_power_spectra(array,res,title):
+                            
+                            import numpy as np
+                            import matplotlib.pyplot as plt
+                            from scipy.fft import fft, fftfreq
+
+                            # Example array (replace this with your actual data)
+
+                            # Parameters
+                            sampling_rate = 1.0  # Sampling rate in Hz (1 sample per second, adjust if needed)
+                            window_size = res     # Window size in samples (1 minute sliding window)
+                            overlap = 0.9        # 50% overlap between windows
+                            step_size = int(window_size * (1 - overlap))
+
+                            # Prepare storage for power spectrum data across windows
+                            num_windows = (len(array) - window_size) // step_size + 1
+                            frequencies = fftfreq(window_size, 1 / sampling_rate)[:window_size // 2]
+                            power_matrix = np.zeros((len(frequencies), num_windows))
+
+                            # Calculate the power spectrum in each sliding window
+                            for i in range(num_windows):
+                                start = i * step_size
+                                end = start + window_size
+                                window_data = array[start:end]
+
+                                # Compute FFT and power spectrum for the current window
+                                fft_values = fft(window_data)
+                                power_spectrum = 2.0 / window_size * np.abs(fft_values[:window_size // 2])**2
+                                power_matrix[:, i] = power_spectrum
+
+                            # Plot the results
+                            fig, axs = plt.subplots(2, 1, figsize=(10, 10),sharex=True)
+
+                            # Plot the original array
+                            axs[0].plot(array)
+                            axs[0].set_title(title)
+                            axs[0].set_xlabel("Time")
+                            axs[0].set_ylabel("Amplitude")
+
+                            # Plot the power spectrum as a spectrogram
+                            time_axis = np.arange(num_windows) * step_size / sampling_rate  # x-axis is in seconds
+                            axs[1].pcolormesh(time_axis, frequencies, power_matrix, shading='auto', cmap='viridis',vmin=0,vmax=1000)
+                            axs[1].set_title("Power Spectrum (1-Minute Sliding Windows)")
+                            axs[1].set_xlabel("Time (s)")
+                            axs[1].set_ylabel("Frequency (Hz)")
+                            #plt.colorbar(axs[1].pcolormesh(time_axis, frequencies, power_matrix, shading='auto', cmap='viridis'), ax=axs[1], label='Power')
+
+                            #plt.tight_layout()
+                            plt.show()
+                            
+
+                        make_power_spectra(B_par,120,'$B_{par}$') 
+                        make_power_spectra(B_perp1,120,'$B_{perp1}$')
+                        make_power_spectra(B_perp2,120,'$B_{perp2}$')
+                        
+                        
+                        
+                        
+                            
+                        
+                            
+                            
+                            
+                        
+                        
+                        
 # =============================================================================
 #                     ax5_mag.plot(dates[gd],theta,color='blue',label='$tan^{-1}(X/Y)$')
 #                     ax5_mag.plot(dates[gd],phi,color='red',label='$tan^{-1}(Y/Z)$')
@@ -1624,7 +1737,7 @@ def multi_orbit_plot(ii,r1=False,r2=False,r3=False,r4=False,ranges=False,conduct
         if ((i ==0) & (ii==21)) :
             
             for p in range(len(axes_mag)-1):
-                dates_aw=np.load('dates_21_aw.npy')
+                dates_aw=np.load('/Users/bowersch/Desktop/Python_Code/Alfven_Wing/dates_21_aw.npy')
                 
                 shade_in_time_series(axes_mag[p],dates_aw[0],dates_aw[-1],'lightsteelblue',alpha=0.5,shade=True)
 
