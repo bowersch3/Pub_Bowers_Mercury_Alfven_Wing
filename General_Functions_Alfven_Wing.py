@@ -857,6 +857,20 @@ def format_ticks(ax,fs):
     
     ax.tick_params(labelsize=fs-5)
 
+def calculate_tangent_vector(curve_points, index):
+    # Get the neighboring points
+    prev_index = (index - 1) % len(curve_points)
+    next_index = (index + 1) % len(curve_points)
+    prev_point = curve_points[prev_index]
+    next_point = curve_points[next_index]
+    
+    # Calculate the tangent vector
+    tangent_vector = next_point - prev_point
+    
+    # Normalize the tangent vector
+    tangent_vector = tangent_vector/ np.linalg.norm(tangent_vector)
+    
+    return tangent_vector 
 
 def plot_MESSENGER_trange_cyl(trange,plot=False):
     
@@ -922,7 +936,14 @@ def plot_MESSENGER_trange_cyl(trange,plot=False):
 
     
     # Color the left hemisphere red and the right hemisphere gray
-    ax1.fill_between(x, y, where=x<0, color='black', interpolate=True)
+    ax1.fill_between(x, y, where = x < 0, color='black', interpolate=True)
+    
+    theta = np.linspace(0, 2*np.pi, 1000)
+    x = np.cos(theta)
+    y = np.sin(theta)+0.2
+    
+    # Plot the circle in all 3 plots
+    ax1.plot(x, y, color='indianred',linestyle = '--')
     
     
     #Set equal aspect so Mercury is circular
